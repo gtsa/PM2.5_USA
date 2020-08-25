@@ -1,0 +1,201 @@
+---
+title: "US Fine Paritculate Matter (PM2.5) (1999-2008) Exploratory Analysis"
+author: "geotsa"
+date: "25/07    /2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Overview
+
+Fine particulate matter (PM2.5) is an ambient air pollutant for which there is strong evidence that it is harmful to human health. In the United States, the Environmental Protection Agency (EPA) is tasked with setting national ambient air quality standards for fine PM and for tracking the emissions of this pollutant into the atmosphere. Approximatly every 3 years, the EPA releases its database on emissions of PM2.5. This database is known as the National Emissions Inventory (NEI). You can read more information about the NEI at the EPA National Emissions Inventory web site.
+
+For each year and for each type of PM source, the NEI records how many tons of PM2.5 were emitted from that source over the course of the entire year. The data that you will use for this assignment are for 1999, 2002, 2005, and 2008.
+
+## Data
+ 
+The data for this assignment are available as a single zip file:
+
+- [Data for Peer Assessment](https://d396qusza40orc.cloudfront.net/exdata%2Fdata%2FNEI_data.zip) [29Mb]
+
+The zip file contains two files:
+
+PM2.5 Emissions Data (<span style="color: red;">summarySCC_PM25.rds</span>): This file contains a data frame with all of the PM2.5 emissions data for 1999, 2002, 2005, and 2008. For each year, the table contains number of tons of PM2.5 emitted from a specific type of source for the entire year. 
+
+- <span style="color: red;">fips</span> : A five-digit number (represented as a string) indicating the U.S. county 
+- <span style="color: red;">SCC</span> : The name of the source as indicated by a digit string (see source code classification table)
+- <span style="color: red;">Pollutant</span> : A string indicating the pollutant
+- <span style="color: red;">Emissions</span> : Amount of PM2.5 emitted, in tons
+- <span style="color: red;">type</span> : The type of source (point, non-point, on-road, or non-road)
+- <span style="color: red;">year</span> : The year of emissions recorded
+
+Source Classification Code Table (<span style="color: red;">Source_Classification_Code.rds</span>): This table provides a mapping from the SCC digit strings in the Emissions table to the actual name of the PM2.5 source. The sources are categorized in a few different ways from more general to more specific and you may choose to explore whatever categories you think are most useful. For example, source “10100101” is known as “Ext Comb /Electric Gen /Anthracite Coal /Pulverized Coal”.
+
+---
+
+#### **The overall goal of this assignment is to explore the National Emissions Inventory database and see what it say about fine particulate matter pollution in the United states over the 10-year period 1999–2008. You may use any R package you want to support your analysis.**
+
+---
+
+```{r}
+# We are creating the main data.frames
+NEI <- readRDS("summarySCC_PM25.rds")
+SCC <- readRDS("Source_Classification_Code.rds")
+```
+
+1) Have total emissions from PM2.5 decreased in the United States from 1999 to 2008? Using the base plotting system, we make a plot showing the total PM2.5 emission from all sources for each of the years 1999, 2002, 2005, and 2008.
+
+```{r q1}
+# We are loading the "dplyr" (piping will be used)
+library(dplyr)
+
+# We are grouping the data per year and summarizing the Emissions per year
+sum.total <- NEI %>% 
+        group_by(year) %>%
+        summarize(sum.total = sum(Emissions))
+
+# Creating the plot and printing the png
+png(filename = "plot1.png")
+plot(sum.total, type= "o", col="red", pch=19, lty=2, ylim = c(0, max(sum.total[,2])), xaxt="n", xlab="Year", ylab="Total Emissions (tons)")
+axis(1, at=c(1999, 2002, 2005, 2008), labels=c(1999, 2002, 2005, 2008))
+title(main = "Total Annual Emissions in the USA by Year")
+dev.off()
+
+# ATTENTION: The number of observations we are interested in varies considerably from year to year.
+# So, it would be wiser to use their mean values than their sums.
+```
+
+
+2) Have total emissions from PM2.5 decreased in the Baltimore City, Maryland (<span style="color: red;">fips == "24510"</span> from 1999 to 2008? We're using the base plotting system to make a plot answering this question.
+
+```{r q2}
+# We are selecting only the data for Baltimore City, grouping the data and summarizing the Emissions by year
+sum.baltimore <- NEI %>%
+        filter(fips == "24510") %>%
+        group_by(year) %>%
+        summarize(sum.total = sum(Emissions))
+
+# Creating the plot and printing the png
+png(filename = "plot2.png")
+plot(sum.baltimore, type= "o", col="red", pch=19, lty=2, ylim = c(0, max(sum.baltimore[,2])), xaxt="n", xlab="Year", ylab="Total Emissions (tons)")
+axis(1, at=c(1999, 2002, 2005, 2008), labels=c(1999, 2002, 2005, 2008))
+title(main = "Total Annual Emissions in Baltimore City by Year")
+dev.off()
+
+# ATTENTION: The number of observations we are interested in varies considerably from year to year.
+# So, it would be wiser to use their mean values than their sums.
+```
+
+3) Of the four types of sources indicated by the <span style="color: red;">type</span> (point, nonpoint, onroad, nonroad) variable, which of these four sources have seen decreases in emissions from 1999–2008 for Baltimore City? Which have seen increases in emissions from 1999–2008? We're using the ggplot2 plotting system to make a plot answer this question.
+
+```{r q3}
+# We are selecting only the data for Baltimore City, grouping the data and summarizing the Emissions by type and year
+sum.types.baltimore <- NEI %>%
+        filter(fips == "24510") %>%
+        group_by(type, year) %>%
+        summarize(sum.total = sum(Emissions))
+
+# We are loading the ggplot2 library
+library(ggplot2)
+
+# We are calculating the plot
+plot_sum.types.baltimore <- ggplot(data = sum.types.baltimore, aes(year, sum.total)) +
+        geom_point(color = "red",
+                   size = 3,
+                   alpha = .6) +
+        facet_grid(. ~ type) +
+        xlab("Year") +
+        ylab("Total Emissions [Tons]") +
+        ggtitle("Total Annual Emissions in Baltimore City by Type and Year")
+
+
+# Creating the png
+png(filename = "plot3.png")
+plot_sum.types.baltimore
+dev.off()
+
+# ATTENTION: The number of observations we are interested in varies considerably from year to year.
+# So, it would be wiser to use their mean values than their sums.
+```
+
+4) Across the United States, how have emissions from coal combustion-related sources changed from 1999–2008?
+
+```{r q4}
+# From the SCC data.frame, we are saving the SCC-codes corrresponding to coal combustion-related sources
+coal.scc <- SCC[grep("coal", SCC$EI.Sector, ignore.case = TRUE),1]
+# From the NEI data.frame, we are selecting the rows with these SCC-codes
+NEI.coal <- NEI[which(NEI[,2] %in% coal.scc),]
+# We are grouping the data for the USA and summarizing the coal combustion-related Emissions by year
+sum.coal.total <- NEI.coal %>%
+        group_by(year) %>%
+        summarize(sum.total = sum(Emissions))
+
+# Creating the plot and printing the png (enlarging width)
+png(filename = "plot4.png", width = 700)
+plot(sum.coal.total, type= "o", col="red", pch=19, lty=2, xaxt="n", xlab="Year", ylab="Total Coal combustion Emissions (tons)")
+axis(1, at=c(1999, 2002, 2005, 2008), labels=c(1999, 2002, 2005, 2008))
+title(main = "Total Annual Emissions in the USA from coal combustion-related sources")
+dev.off()
+
+# ATTENTION: The number of observations we are interested in varies considerably from year to year.
+# So, it would be wiser to use their mean values than their sums.
+```
+
+5) How have emissions from motor vehicle sources changed from 1999–2008 in Baltimore City?
+
+```{r q5}
+# From the SCC data.frame, we are saving the SCC-codes corrresponding to motor vehicle sources
+vehicles.scc <- SCC[grep("veh", SCC$Short.Name, ignore.case = TRUE),1]
+# From the NEI data.frame, we are selecting the rows with these SCC-codes
+NEI.vehicles <- NEI[which(NEI[,2] %in% vehicles.scc),]
+# We are selecting only the data for Baltimore City, grouping the data and summarizing the Emissions by year
+sum.vehicles.baltimore <- NEI.vehicles %>%
+        filter(fips == "24510") %>%
+        group_by(year) %>%
+        summarize(sum.vehicle.baltimore = sum(Emissions))
+
+# Creating the plot and printing the png (enlarging width)
+png(filename = "plot5.png", width = 700)
+plot(sum.vehicles.baltimore, type= "o", col="red", pch=19, lty=2, xaxt="n", xlab="Year", ylab="Total Vehicle Emissions (tons)")
+axis(1, at=c(1999, 2002, 2005, 2008), labels=c(1999, 2002, 2005, 2008))
+title(main = "Total Annual Emissions in Baltimore City from motor vehicle sources ")
+dev.off()
+
+# ATTENTION: The number of observations we are interested in varies considerably from year to year.
+# So, it would be wiser to use their mean values than their sums.
+```
+
+6) We're comparing emissions from motor vehicle sources in Baltimore City with emissions from motor vehicle sources in Los Angeles County, California (<span style="color: red;">fips == "06037"</span>). Which city has seen greater changes over time in motor vehicle emissions?
+
+```{r q6}
+# From the SCC data.frame, we are saving the SCC-codes corrresponding to motor vehicle sources
+vehicles.scc <- SCC[grep("veh", SCC$Short.Name, ignore.case = TRUE),1]
+# From the NEI data.frame, we are selecting the rows with these SCC-codes
+NEI.vehicles <- NEI[which(NEI[,2] %in% vehicles.scc),]
+# We are selecting only the data for Baltimore City, grouping the data and summarizing the Emissions by year
+sum.vehicles.baltimore <- NEI.vehicles %>%
+        filter(fips == "24510") %>%
+        group_by(year) %>%
+        summarize(sum = sum(Emissions))
+# We are selecting only the data for Los Angeles, grouping the data and summarizing the Emissions by year
+sum.vehicles.losangeles <- NEI.vehicles %>%
+        filter(fips == "06037") %>%
+        group_by(year) %>%
+        summarize(sum = sum(Emissions))
+
+# Creating the plot and printing the png (enlarging width) 
+png(filename = "plot6.png", width = 700)
+plot(sum.vehicles.baltimore, type= "o", col="red", pch=19, lty=2, xaxt="n", xlab="Year", ylab="Total Vehicle Emissions (tons)", ylim=c(0, max(max(sum.vehicles.baltimore$sum),max(sum.vehicles.losangeles$sum))))
+points(sum.vehicles.losangeles$year, sum.vehicles.losangeles$sum, type= "o", col="green", pch=19, lty=2)
+axis(1, at=c(1999, 2002, 2005, 2008), labels=c(1999, 2002, 2005, 2008))
+legend("right", legend=c("Los Angeles", "Baltimore City"),
+       col=c("green", "red"), lty=2)
+title(main = "Total Annual Emissions from motor vehicle sources in Baltimore City and Los Angeles")
+dev.off()
+
+# ATTENTION: The number of observations we are interested in varies considerably from year to year.
+# So, it would be wiser to use their mean values than their sums.
+```
